@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class LoginViewController: UIViewController, UITextFieldDelegate {
+class LoginViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate {
 
     @IBOutlet weak var emailField: UITextField!
     @IBOutlet weak var passwordField: UITextField!
@@ -41,8 +41,22 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
     @IBAction func didAttemptLogin(_ sender: UIButton) {
         guard let emailText = emailField.text else { return }
         guard let passwordText = passwordField.text else { return }
+        FIRAuth.auth()?.signIn(withEmail: emailText, password: passwordText, completion: { (user, error) in
+        if let error = error {
+            print("Sign in failed, please use again")
+            let popup = UIAlertController(
+                title: "Incorrect Password!",
+                message: "You can't get in!",
+                preferredStyle: .alert)
+            popup.addAction(UIAlertAction(title: "Okay", style: .default, handler: nil))
+            self.present(popup, animated:true)
+        } else {
+            self.performSegue(withIdentifier: "loginToMain", sender: self)
+        }
+        })
         
         // YOUR CODE HERE
+        
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

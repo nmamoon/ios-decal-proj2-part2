@@ -60,6 +60,16 @@ func addPost(postImage: UIImage, thread: String, username: String) {
     let data = UIImageJPEGRepresentation(postImage, 1.0)! 
     let path = "\(firStorageImagesPath)/\(UUID().uuidString)"
     
+    let form = DateFormatter()
+    form.dateFormat = dateFormat
+    let date = form.string(from: Date())
+    let postdict = [firImagePathNode: path, firThreadNode: thread, firUsernameNode: username, firDateNode: date]
+    
+    
+    dbRef.child(firPostsNode).childByAutoId().setValue(postdict)
+    
+    store(data: data, toPath: path)
+    
     // YOUR CODE HERE
 }
 
@@ -74,7 +84,16 @@ func addPost(postImage: UIImage, thread: String, username: String) {
 func store(data: Data, toPath path: String) {
     let storageRef = FIRStorage.storage().reference()
     
+    
+    
     // YOUR CODE HERE
+    storageRef.child(path).put(data, metadata: nil) {
+        (metadata, error) in
+        if let error = error {
+            print(error)
+        }
+        
+    }
 }
 
 
@@ -98,8 +117,50 @@ func store(data: Data, toPath path: String) {
 func getPosts(user: CurrentUser, completion: @escaping ([Post]?) -> Void) {
     let dbRef = FIRDatabase.database().reference()
     var postArray: [Post] = []
+ 
     
     // YOUR CODE HERE
+    dbRef.child(firPostsNode).observeSingleEvent(of: .value, with: {(snapshot) in
+        if snapshot.exists() {
+            let shot = snapshot.value as? [String: AnyObject]
+            user.getReadPostIDs(completion: {(readPosts) in
+                
+                for (key, val) in shot! {
+                    
+                    var ukey = ""
+                    var dkey = ""
+                    var tkey = ""
+                    var pkey = ""
+                    
+                    if let username = val.value(forKey: firUsernameNode) as? String {
+                        ukey = username
+                    }
+                    if let path = val.value(forKey: firImagePathNode) as? String {
+                        pkey = path
+                    }
+                    if let thread = val.value(forKey: firThreadNode) as?
+                        String {
+                        tkey = thread
+                    }
+                    if let date = val.value(forKey: firDateNode) as?
+                        String {
+                        dkey = date
+                    }
+                    
+                    let readbool = readPosts.contains(key)
+                    let postObj = Post(id: key, username: ukey, postImagePath: pkey, thread: tkey, dateString: dkey, read: readbool)
+                    postArray.append(postObj)
+                }
+                
+                completion(postArray)
+            })
+            
+        } else {
+            completion(nil)
+        }
+        
+    
+    })
 }
 
 func getDataFromPath(path: String, completion: @escaping (Data?) -> Void) {
